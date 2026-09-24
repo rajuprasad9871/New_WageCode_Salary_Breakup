@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Salary Breakup Calculator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .calculator-card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 25px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input[type="number"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .radio-option input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .radio-option label {
+            display: inline;
+            margin-bottom: 0;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .results {
+            margin-top: 5px;
+            border-top: 2px solid #ecf0f1;
+            padding-top: 15px;
+        }
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f2f2f2;
+            color: #555;
+        }
+        .result-row.total {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 18px;
+            border-bottom: 2px solid #2c3e50;
+            margin-top: 10px;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .deduction {
+            color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calculator-card">
+    <h2>Salary Breakup Calculator</h2>
+    
+    <div class="input-group">
+        <label for="ctcInput">Annual CTC (₹):</label>
+        <!-- Oninput captures live typing -->
+        <input type="number" id="ctcInput" placeholder="Enter Annual CTC (e.g. 600000)" min="0" oninput="calculateSalary()">
+    </div>
+    
+    <label>PF Option:</label>
+    <div class="radio-group">
+        <div class="radio-option">
+            <input type="radio" id="minPf" name="pfSetting" value="min" checked onchange="calculateSalary()">
+            <label for="minPf">Minimum PF (Cap at ₹3,000)</label>
+        </div>
+        <div class="radio-option">
+            <input type="radio" id="maxPf" name="pfSetting" value="max" onchange="calculateSalary()">
+            <label for="maxPf">Max PF (No Cap - Full 12%)</label>
+        </div>
+    </div>
+    
+    <div class="results" id="resultSection">
+        <h3>Salary Components (Monthly Summary):</h3>
+        
+        <div class="result-row">
+            <span>Basic Salary (50% of CTC):</span>
+            <span id="lblBasic">₹0.00</span>
+        </div>
+        
+        <div class="result-row">
+            <span>HRA (50% of Basic):</span>
+            <span id="lblHra">₹0.00</span>
+        </div>
+        
+        <div class="result-row">
+            <span>Special Allowance (Rest):</span>
+            <span id="lblSpecial">₹0.00</span>
+        </div>
+        
+        <div class="result-row">
+            <span>Employer PF Contribution:</span>
+            <span id="lblEmployerPf">₹0.00</span>
+        </div>
+        
+        <div class="result-row deduction">
+            <span>Employee PF Deduction (12% of Basic):</span>
+            <span id="lblEmployeePf">₹0.00</span>
+        </div>
+        
+        <div class="result-row total">
+            <span>Total Monthly CTC Match:</span>
+            <span id="lblTotalCtc">₹0.00</span>
+        </div>
+        
+        <div class="result-row total" style="background-color: #e8f8f5; border-color: #2ecc71; margin-top: 15px;">
+            <span>Estimated Take-Home Salary:</span>
+            <span id="lblTakeHome" style="color: #27ae60;">₹0.00</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function calculateSalary() {
+    // 1. Get Live Inputs
+    const annualCtc = parseFloat(document.getElementById('ctcInput').value);
+    const pfOption = document.querySelector('input[name="pfSetting"]:checked').value;
+    
+    // Clear display if input is empty or invalid
+    if (isNaN(annualCtc) || annualCtc <= 0) {
+        resetOutputs();
+        return;
+    }
+    
+    // Convert to Monthly CTC
+    const monthlyCtc = annualCtc / 12;
+    
+    // 2. Component Logic
+    // Basic = 50% of Monthly CTC
+    const basic = monthlyCtc * 0.50;
+    
+    // HRA = 50% of Basic
+    const hra = basic * 0.50;
+    
+    // Pure 12% Calculation
+    let calculatedPf = basic * 0.12;
+    
+    // Apply conditional capping logic based on choice
+    if (pfOption === "min" && calculatedPf > 3000) {
+        calculatedPf = 3000;
+    }
+    
+    const employeePf = calculatedPf;
+    const employerPf = calculatedPf; 
+    
+    // Special Allowance acts as the dynamic container to guarantee CTC matching
+    const specialAllowance = monthlyCtc - basic - hra - employerPf;
+    
+    // Take Home Calculation
+    const takeHome = basic + hra + specialAllowance - employeePf;
+    
+    // Verification checksum
+    const finalCalculatedCtc = basic + hra + specialAllowance + employerPf;
+    
+    // 3. Render Outputs instantly
+    document.getElementById('lblBasic').innerText = "₹" + basic.toFixed(2);
+    document.getElementById('lblHra').innerText = "₹" + hra.toFixed(2);
+    document.getElementById('lblSpecial').innerText = "₹" + specialAllowance.toFixed(2);
+    document.getElementById('lblEmployerPf').innerText = "₹" + employerPf.toFixed(2);
+    document.getElementById('lblEmployeePf').innerText = "₹" + employeePf.toFixed(2);
+    document.getElementById('lblTotalCtc').innerText = "₹" + finalCalculatedCtc.toFixed(2);
+    document.getElementById('lblTakeHome').innerText = "₹" + takeHome.toFixed(2);
+}
+
+function resetOutputs() {
+    document.getElementById('lblBasic').innerText = "₹0.00";
+    document.getElementById('lblHra').innerText = "₹0.00";
+    document.getElementById('lblSpecial').innerText = "₹0.00";
+    document.getElementById('lblEmployerPf').innerText = "₹0.00";
+    document.getElementById('lblEmployeePf').innerText = "₹0.00";
+    document.getElementById('lblTotalCtc').innerText = "₹0.00";
+    document.getElementById('lblTakeHome').innerText = "₹0.00";
+}
+</script>
+
+</body>
+</html>
